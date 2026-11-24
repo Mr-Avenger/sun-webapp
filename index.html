@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sun — هلدینگ خورشید</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --bg-deep: #030508;
+            --bg-primary: #070b14;
+            --bg-secondary: #0c1220;
+            --bg-glass: rgba(255, 255, 255, 0.02);
+            --accent-cyan: #00f0ff;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --accent-gold: #fbbf24;
+            --accent-green: #34d399;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --border-glow: rgba(0, 240, 255, 0.15);
+            --shadow-glow: 0 0 80px rgba(0, 240, 255, 0.12);
+            --shadow-glow-strong: 0 0 120px rgba(168, 85, 247, 0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            background: rgba(0, 240, 255, 0.06);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            border-radius: 50px;
+            font-size: 12px;
+            color: var(--accent-cyan);
+            margin-bottom: 32px;
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .hero-badge .dot {
+            width: 6px; height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .hero-title {
+            font-size: 120px;
+            font-weight: 900;
+            line-height: 0.9;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 25%, var(--accent-purple) 50%, var(--accent-pink) 75%, var(--accent-cyan) 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 6s ease infinite;
+            opacity: 0;
+            transform: translateY(40px) scale(0.9);
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .hero-subtitle {
+            font-size: 22px;
+            font-weight: 300;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+            letter-spacing: 4px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 56px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: translateY(20px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.3);
+        }
+        .hero-cta::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.8s;
+        }
+        .hero-cta:hover::before { left: 100%; }
+        .hero-cta:hover {
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 0 24px 80px rgba(0, 240, 255, 0.5);
+        }
+
+        .hero-scroll {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-muted);
+            font-size: 28px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(12px); }
+        }
+
+        .section {
+            position: relative;
+            z-index: 1;
+            padding: 100px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .section-title {
+            font-size: 48px;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 80px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cards-3d {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            perspective: 1200px;
+        }
+        .card-3d {
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 40px;
+            transform-style: preserve-3d;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .card-3d::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 0%, rgba(0,240,255,0.08) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.6s;
+            border-radius: 32px;
+        }
+        .card-3d:hover {
+            transform: translateY(-12px) rotateX(8deg) rotateY(-8deg);
+            border-color: var(--accent-cyan);
+            box-shadow: var(--shadow-glow), var(--shadow-glow-strong);
+        }
+        .card-3d:hover::before { opacity: 1; }
+        .card-3d .icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            transform: translateZ(30px);
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(0, 240, 255, 0.3));
+        }
+        .card-3d h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            transform: translateZ(15px);
+        }
+        .card-3d p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            transform: translateZ(8px);
+        }
+
+        .store-hero {
+            text-align: center;
+            padding: 80px 20px;
+            position: relative;
+        }
+        .store-hero h2 {
+            font-size: 64px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        .store-hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+        .store-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 22px 60px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #000;
+            border: none;
+            border-radius: 24px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0, 240, 255, 0.3);
+        }
+        .store-cta:hover {
+            transform: translateY(-6px) scale(1.03);
+            box-shadow: 0 24px 80px rgba(0, 240, 255, 0.5);
+        }
+
+        .shops-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
+            padding: 20px;
+        }
+        .shop-card-3d {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            transform-style: preserve-3d;
+        }
+        .shop-card-3d::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent 0%, var(--accent-cyan) 10%, transparent 20%, var(--accent-purple) 30%, transparent 40%);
+            animation: rotateBorder 6s linear infinite;
+            opacity: 0;
+            transition: opacity 0.6s;
+        }
+        .shop-card-3d:hover::before { opacity: 0.6; }
+        .shop-card-3d:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: var(--accent-cyan);
+            box-shadow: var(--shadow-glow);
+        }
+        @keyframes rotateBorder {
+            100% { transform: rotate(360deg); }
+        }
+        .shop-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .shop-avatar {
+            width: 80px; height: 80px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 12px 40px rgba(0, 240, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .shop-avatar::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 3s infinite;
+        }
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        .shop-info h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .shop-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .shop-stats {
+            display: flex;
+            gap: 32px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .shop-stat {
+            text-align: center;
+        }
+        .shop-stat .num {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .shop-stat .label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .shop-products {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 12px 0;
+            scrollbar-width: none;
+            position: relative;
+            z-index: 1;
+        }
+        .shop-products::-webkit-scrollbar { display: none; }
+        .product-thumb {
+            flex-shrink: 0;
+            width: 88px; height: 88px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        .product-thumb::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.15) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .product-thumb:hover {
+            border-color: var(--accent-cyan);
+            transform: scale(1.15) translateY(-6px);
+            box-shadow: 0 12px 32px rgba(0, 240, 255, 0.25);
+        }
+        .product-thumb:hover::before { opacity: 1; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 32px;
+            padding: 40px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(3, 5, 8, 0.95);
+            backdrop-filter: blur(40px);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-around;
+            padding: 14px 0 18px;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 10px 20px;
+            border-radius: 20px;
+            position: relative;
+        }
+        .nav-item.active {
+            color: var(--accent-cyan);
+        }
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: 50%;
+            transform: translateX(-50%);
+            width: 40px; height: 2px;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 15px var(--accent-cyan);
+        }
+        .nav-item .icon {
+            font-size: 26px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-item:hover .icon {
+            transform: scale(1.3) translateY(-2px);
+        }
+        .nav-item:hover {
+            color: var(--accent-cyan);
+        }
+
+        .spacer { height: 120px; }
+        .text-gradient {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .glow-text {
+            text-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="three-canvas"></canvas>
+
+    <section class="hero" id="hero">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            هلدینگ خورشید — اکوسیستم دیجیتال آینده
+        </div>
+        <h1 class="hero-title parallax-layer" data-depth="0.08">Sun</h1>
+        <p class="hero-subtitle parallax-layer" data-depth="0.04">☀️ هلدینگ خورشید</p>
+        <button class="hero-cta" onclick="scrollToSection('store')">
+            ورود به فروشگاه
+            <span>→</span>
+        </button>
+        <div class="hero-scroll">↓</div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">امکانات پلتفرم</h2>
+        <div class="cards-3d">
+            <div class="card-3d">
+                <span class="icon">🛒</span>
+                <h3>فروشگاه خدماتی</h3>
+                <p>هر کاربر یک مغازه — محصولات و خدمات خود را بفروشید. بازاری برای همه.</p>
+            </div>
+            <div class="card-3d">
+                <span class="icon">🎯</span>
+                <h3>سیستم مأموریت</h3>
+                <p>تسک‌ها، پاداش‌ها، XP و Level. پیشرفت فردی و گروهی.</p>
+            </div>
+            <div class="card-3d">
+                <span class="icon">🤖</span>
+                <h3>AI و داده‌ها</h3>
+                <p>پایش لحظه‌ای داده‌های جهانی. تحلیل هوشمند. هشدارهای real-time.</p>
+            </div>
+            <div class="card-3d">
+                <span class="icon">🌐</span>
+                <h3>اینترنت جدید</h3>
+                <p>طرح اینترنت جدید جهانی. امنیت، حریم خصوصی، دسترسی جهانی.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="store" class="section">
+        <div class="store-hero">
+            <h2>فروشگاه Sun</h2>
+            <p>بازار خدماتی — هر کاربر یک مغازه. محصولات و خدمات خود را بفروشید، خرید کنید، و رشد کنید.</p>
+            <button class="store-cta" onclick="tg.showAlert('ایجاد مغازه — به زودی')">
+                🏪 ایجاد مغازه
+            </button>
+        </div>
+
+        <div class="shops-grid">
+            <div class="shop-card-3d">
+                <div class="shop-header">
+                    <div class="shop-avatar">🌾</div>
+                    <div class="shop-info">
+                        <h3>کشاورزی ارگانیک</h3>
+                        <p>محصولات تازه و ارگانیک</p>
+                    </div>
+                </div>
+                <div class="shop-stats">
+                    <div class="shop-stat"><div class="num">12</div><div class="label">محصول</div></div>
+                    <div class="shop-stat"><div class="num">89</div><div class="label">فروش</div></div>
+                    <div class="shop-stat"><div class="num">4.9</div><div class="label">امتیاز</div></div>
+                </div>
+                <div class="shop-products">
+                    <div class="product-thumb">🍎</div>
+                    <div class="product-thumb">🥬</div>
+                    <div class="product-thumb">🍅</div>
+                    <div class="product-thumb">🌾</div>
+                </div>
+            </div>
+
+            <div class="shop-card-3d">
+                <div class="shop-header">
+                    <div class="shop-avatar">💻</div>
+                    <div class="shop-info">
+                        <h3>سرویس‌های دیجیتال</h3>
+                        <p>نرم‌افزار و طراحی</p>
+                    </div>
+                </div>
+                <div class="shop-stats">
+                    <div class="shop-stat"><div class="num">8</div><div class="label">خدمت</div></div>
+                    <div class="shop-stat"><div class="num">45</div><div class="label">سفارش</div></div>
+                    <div class="shop-stat"><div class="num">5.0</div><div class="label">امتیاز</div></div>
+                </div>
+                <div class="shop-products">
+                    <div class="product-thumb">🎨</div>
+                    <div class="product-thumb">📱</div>
+                    <div class="product-thumb">🌐</div>
+                    <div class="product-thumb">🤖</div>
+                </div>
+            </div>
+
+            <div class="shop-card-3d">
+                <div class="shop-header">
+                    <div class="shop-avatar">🛠️</div>
+                    <div class="shop-info">
+                        <h3>خدمات تخصصی</h3>
+                        <p>مشاوره و اجرا</p>
+                    </div>
+                </div>
+                <div class="shop-stats">
+                    <div class="shop-stat"><div class="num">15</div><div class="label">خدمت</div></div>
+                    <div class="shop-stat"><div class="num">203</div><div class="label">سفارش</div></div>
+                    <div class="shop-stat"><div class="num">4.7</div><div class="label">امتیاز</div></div>
+                </div>
+                <div class="shop-products">
+                    <div class="product-thumb">🔧</div>
+                    <div class="product-thumb">📐</div>
+                    <div class="product-thumb">📊</div>
+                    <div class="product-thumb">🎯</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="section">
+        <div class="glass-panel" style="text-align: center;">
+            <h2 class="section-title" style="margin-bottom: 24px;">درباره هلدینگ خورشید</h2>
+            <p style="color: var(--text-secondary); line-height: 2; font-size: 15px; max-width: 800px; margin: 0 auto;">
+                پروژه ۸ ساله — برنامه‌نویسی، تولید محتوا، مستندسازی<br><br>
+                فروشگاه آنلاین صنایع و خدمات (بازار خدماتی)<br>
+                بازار خرید/فروش صنایع و تولیدکنندگان<br>
+                سیستم مأموریت/تسک — گروه‌های تیمی<br>
+                خدمات بازاریابی دیجیتال<br>
+                محصولات ارگانیک کشاورزی<br>
+                تیم‌های عکاسی برای کسب‌وکارها<br>
+                شرکت شتاب‌دهنده ایده<br><br>
+                <span class="text-gradient" style="font-weight: 700;">پلتفرم: ربات تلگرام → اپلیکیشن → سوپر اپلیکیشن</span><br>
+                <span style="color: var(--text-muted);">گسترش: ایران → سایر کشورها → جهانی</span>
+            </p>
+        </div>
+    </section>
+
+    <div class="spacer"></div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="scrollToSection('hero')">
+            <span class="icon">🏠</span>
+            <span>خانه</span>
+        </div>
+        <div class="nav-item" onclick="scrollToSection('store')">
+            <span class="icon">🛒</span>
+            <span>فروشگاه</span>
+        </div>
+        <div class="nav-item" onclick="scrollToSection('missions')">
+            <span class="icon">🎯</span>
+            <span>مأموریت</span>
+        </div>
+        <div class="nav-item" onclick="scrollToSection('ai')">
+            <span class="icon">🤖</span>
+            <span>AI</span>
+        </div>
+        <div class="nav-item" onclick="scrollToSection('about')">
+            <span class="icon">ℹ️</span>
+            <span>درباره</span>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#030508');
+        tg.setBackgroundColor('#030508');
+
+        // ─── Three.js 3D Background ───
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 200;
+        const posArray = new Float32Array(particlesCount * 3);
+        const colorArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i += 3) {
+            posArray[i] = (Math.random() - 0.5) * 20;
+            posArray[i + 1] = (Math.random() - 0.5) * 20;
+            posArray[i + 2] = (Math.random() - 0.5) * 20;
+            if (Math.random() > 0.5) {
+                colorArray[i] = 0; colorArray[i+1] = 0.94; colorArray[i+2] = 1;
+            } else {
+                colorArray[i] = 0.66; colorArray[i+1] = 0.33; colorArray[i+2] = 0.97;
+            }
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.08,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending,
+        });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        const torusGeometry = new THREE.TorusKnotGeometry(1.5, 0.4, 100, 16);
+        const torusMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00f0ff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15,
+        });
+        const torus = new THREE.Mesh(torusGeometry, torusMaterial);
+        torus.position.set(0, 0, -5);
+        scene.add(torus);
+
+        const icoGeometry = new THREE.IcosahedronGeometry(1, 1);
+        const icoMaterial = new THREE.MeshBasicMaterial({
+            color: 0xa855f7,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1,
+        });
+        const ico = new THREE.Mesh(icoGeometry, icoMaterial);
+        ico.position.set(3, 2, -8);
+        scene.add(ico);
+
+        camera.position.z = 5;
+
+        let mouseX = 0, mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            particlesMesh.rotation.y += 0.0005;
+            particlesMesh.rotation.x += 0.0002;
+            torus.rotation.x += 0.005;
+            torus.rotation.y += 0.003;
+            ico.rotation.x += 0.003;
+            ico.rotation.y += 0.005;
+
+            camera.position.x += (mouseX * 0.5 - camera.position.x) * 0.05;
+            camera.position.y += (mouseY * 0.3 - camera.position.y) * 0.05;
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+        animate3D();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ─── GSAP Animations ───
+        gsap.registerPlugin(ScrollTrigger);
+
+        gsap.to('.hero-badge', { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: 'power3.out' });
+        gsap.to('.hero-title', { opacity: 1, y: 0, scale: 1, duration: 1.2, delay: 0.4, ease: 'power3.out' });
+        gsap.to('.hero-subtitle', { opacity: 1, y: 0, duration: 1, delay: 0.6, ease: 'power3.out' });
+        gsap.to('.hero-cta', { opacity: 1, y: 0, duration: 1, delay: 0.8, ease: 'power3.out' });
+
+        gsap.utils.toArray('.section-title').forEach(title => {
+            gsap.from(title, {
+                scrollTrigger: { trigger: title, start: 'top 80%' },
+                opacity: 0, y: 50, duration: 1, ease: 'power3.out'
+            });
+        });
+
+        gsap.utils.toArray('.card-3d').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: { trigger: card, start: 'top 85%' },
+                opacity: 0, y: 60, rotationX: -15, duration: 0.8,
+                delay: i * 0.1, ease: 'power3.out'
+            });
+        });
+
+        gsap.utils.toArray('.shop-card-3d').forEach((card, i) => {
+            gsap.from(card, {
+                scrollTrigger: { trigger: card, start: 'top 85%' },
+                opacity: 0, y: 80, scale: 0.9, duration: 1,
+                delay: i * 0.15, ease: 'power3.out'
+            });
+        });
+
+        // ─── 3D Tilt Effect ───
+        document.querySelectorAll('.card-3d, .shop-card-3d').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = (y - centerY) / 15;
+                const rotateY = (centerX - x) / 15;
+                gsap.to(card, {
+                    rotationX: rotateX,
+                    rotationY: rotateY,
+                    y: -8,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+            card.addEventListener('mouseleave', () => {
+                gsap.to(card, {
+                    rotationX: 0,
+                    rotationY: 0,
+                    y: 0,
+                    duration: 0.5,
+                    ease: 'power2.out'
+                });
+            });
+        });
+
+        // ─── Scroll Navigation ───
+        function scrollToSection(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (id === 'hero') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // ─── Haptic Feedback ───
+        function haptic(type) {
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred(type || 'light');
+            }
+        }
+
+        document.querySelectorAll('.card-3d, .shop-card-3d, .hero-cta, .store-cta, .nav-item, .product-thumb').forEach(el => {
+            el.addEventListener('click', () => haptic('light'));
+        });
+
+        // ─── Telegram WebApp Init ───
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#030508');
+        tg.setBackgroundColor('#030508');
+    </script>
+</body>
+</html>
